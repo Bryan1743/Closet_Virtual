@@ -1,0 +1,9 @@
+[submodule "ai/agent-teams-lite"]
+	path = ai/agent-teams-lite
+	url = https://github.com/Gentleman-Programming/agent-teams-lite
+[submodule "ai/engram"]
+	path = ai/engram
+	url = https://github.com/Gentleman-Programming/engram
+[submodule "ai/gentle-ai"]
+	path = ai/gentle-ai
+	url = https://github.com/Gentleman-Programming/gentle-ai
