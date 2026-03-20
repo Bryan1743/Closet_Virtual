@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Closet Virtual</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="header">
+        <div class="brand">
+          <div class="logo" aria-hidden="true"></div>
+          <div class="brandText">
+            <div class="title">Virtual Closet</div>
+            <div class="subtitle">Build outfits with a minimalist, smooth UI.</div>
+          </div>
+        </div>
+        <div class="status" aria-live="polite" id="statusText">Ready.</div>
+      </header>
+
+      <main class="layout" aria-label="Closet layout">
+        <section class="rail" aria-label="Tops section">
+          <div class="railHeader">
+            <h2 class="railTitle">Tops</h2>
+            <div class="railHint">Scroll or use the controls below to browse items.</div>
+          </div>
+          <div class="carousel" id="topsCarousel" role="list" aria-label="Tops carousel"></div>
+        </section>
+
+        <section class="preview" aria-label="Outfit preview">
+          <div class="previewCard">
+            <div class="previewTop" id="previewTop">
+              <div class="previewMedia">
+                <img class="previewImg" id="previewTopImg" alt="Selected top" />
+              </div>
+              <div class="previewLabel">Top</div>
+              <div class="previewValue" id="previewTopValue">None selected</div>
+              <div class="previewSub" id="previewTopMeta"></div>
+            </div>
+            <div class="divider" aria-hidden="true"></div>
+            <div class="previewBottom" id="previewBottom">
+              <div class="previewMedia">
+                <img class="previewImg" id="previewBottomImg" alt="Selected bottom" />
+              </div>
+              <div class="previewLabel">Bottom</div>
+              <div class="previewValue" id="previewBottomValue">None selected</div>
+              <div class="previewSub" id="previewBottomMeta"></div>
+            </div>
+            <div class="previewMeta" id="previewMeta">Pick items or tap Browse.</div>
+          </div>
+        </section>
+
+        <section class="rail" aria-label="Bottoms section">
+          <div class="railHeader">
+            <h2 class="railTitle">Bottoms</h2>
+            <div class="railHint">Scroll or use the controls below to browse items.</div>
+          </div>
+          <div class="carousel" id="bottomsCarousel" role="list" aria-label="Bottoms carousel"></div>
+        </section>
+
+        <section class="controls" aria-label="Control panel">
+          <div class="controlsInner">
+            <button class="btn btnPrimary" id="btnBrowse" type="button">
+              <span class="btnTitle">Browse</span>
+              <span class="btnSub">Random outfit</span>
+            </button>
+
+            <div class="btnGroup" role="group" aria-label="Navigation controls">
+              <button class="btn btnIcon" id="btnLeft" type="button" aria-label="Previous item" title="Previous">
+                <span aria-hidden="true">←</span>
+              </button>
+              <button class="btn btnIcon" id="btnPlayPause" type="button" aria-label="Play" title="Random browse (play / pause)">
+                <span class="playLabel" id="playLabel" aria-hidden="true">▶</span>
+              </button>
+              <button class="btn btnIcon" id="btnRight" type="button" aria-label="Next item" title="Next">
+                <span aria-hidden="true">→</span>
+              </button>
+            </div>
+
+            <button class="btn btnAccent" id="btnDress" type="button">
+              <span class="btnTitle">Dress</span>
+              <span class="btnSub">Apply selected</span>
+            </button>
+          </div>
+          <div class="kbdHint" aria-hidden="true">
+            Tip: use <span class="kbd">←</span> <span class="kbd">→</span> to navigate • <span class="kbd">Space</span> play/pause • <span class="kbd">B</span> browse • <span class="kbd">D</span> dress
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>
