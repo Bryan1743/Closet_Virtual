@@ -11,12 +11,9 @@
   --radius2: 14px;
   --blur: 14px;
   --max: 980px;
-  /* Keep everything inside 100vh by scaling spacing with viewport height */
   --gap: clamp(10px, 1.6vh, 16px);
-  /* Bigger, clearer thumbnails for better visibility */
   --cardW: 260px;
   --cardH: clamp(110px, 14vh, 150px);
-  /* Increase image area height to reduce tiny thumbnails on Dress */
   --imgH: clamp(70px, 9vh, 120px);
   --ease: cubic-bezier(.2,.8,.2,1);
 }
@@ -32,7 +29,6 @@ body{
     radial-gradient(900px 500px at 85% 30%, rgba(0,198,255,.18), transparent 55%),
     radial-gradient(900px 500px at 15% 40%, rgba(255,92,162,.14), transparent 55%),
     var(--bg);
-  /* Full-screen app: no page scrolling */
   height: 100dvh;
   overflow: hidden;
 }
@@ -40,18 +36,21 @@ body{
 .app{
   height: 100dvh;
   width: 100%;
-  /* Header (auto) + content (fills remaining height) */
+  min-width: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  justify-items: center;
+  justify-items: stretch;
   align-items: stretch;
-  padding: clamp(14px, 2.4vh, 24px) clamp(14px, 2.2vw, 18px);
-  gap: clamp(10px, 1.8vh, 16px);
+  padding: clamp(10px, 1.8vh, 18px) clamp(12px, 2vw, 18px);
+  gap: clamp(8px, 1.4vh, 12px);
   overflow: hidden;
 }
 
 .header{
-  width: min(var(--max), 100%);
+  width: 100%;
+  max-width: var(--max);
+  min-width: 0;
+  margin: 0 auto;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -96,10 +95,13 @@ body{
 }
 
 .layout{
-  width: min(var(--max), 100%);
+  width: 100%;
+  max-width: var(--max);
+  min-width: 0;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: clamp(10px, 1.8vh, 16px);
+  gap: clamp(8px, 1.2vh, 12px);
   height: 100%;
   min-height: 0;
 }
@@ -110,12 +112,12 @@ body{
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   backdrop-filter: blur(var(--blur));
-  padding: clamp(10px, 1.6vh, 14px) clamp(10px, 1.4vh, 14px) clamp(8px, 1.2vh, 12px);
-  /* Prevent children forcing vertical overflow */
+  padding: clamp(8px, 1.2vh, 12px) clamp(10px, 1.4vh, 14px) clamp(6px, 1vh, 10px);
   min-height: 0;
   overflow: hidden;
   position: relative;
   z-index: 2;
+  flex: 0 0 auto;
 }
 
 .railHeader{
@@ -123,7 +125,7 @@ body{
   justify-content: space-between;
   align-items: baseline;
   gap: 12px;
-  padding: 0 2px clamp(6px, 1.2vh, 10px);
+  padding: 0 2px clamp(4px, 1vh, 8px);
 }
 .railTitle{
   margin: 0;
@@ -145,16 +147,17 @@ body{
   overflow-y: hidden;
   overscroll-behavior-x: contain;
   scroll-snap-type: x mandatory;
-  scroll-padding-inline: 20px;
-  scroll-padding-left: 20px;
-  padding: clamp(8px, 1.4vh, 10px) 20px clamp(8px, 1.4vh, 12px);
-  margin: 0;
+  scroll-padding-inline: 24px;
+  padding: clamp(6px, 1vh, 8px) 24px clamp(6px, 1vh, 10px);
+  margin: 0 -24px;
   scrollbar-width: thin;
   scrollbar-color: rgba(255,255,255,.22) transparent;
-  /* Fix accidental vertical growth */
   height: calc(var(--cardH) + 18px);
   max-height: calc(var(--cardH) + 18px);
   min-height: 0;
+  position: relative;
+  mask-image: linear-gradient(to right, transparent 0px, black 24px, black calc(100% - 24px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0px, black 24px, black calc(100% - 24px), transparent 100%);
 }
 .carousel::-webkit-scrollbar{ height: 10px; }
 .carousel::-webkit-scrollbar-thumb{
@@ -227,7 +230,6 @@ body{
   font-size: 12px;
   color: var(--muted);
   line-height: 1.35;
-  /* Keep card content from expanding its height */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
@@ -247,12 +249,21 @@ body{
   backdrop-filter: blur(10px);
 }
 
+/* Dark clothing on dark backgrounds — inner border for visibility */
+.item[data-dark="true"],
+.itemMedia:has(.itemImg[src*="black"]),
+.itemMedia:has(.itemImg[src*="charcoal"]),
+.itemMedia:has(.itemImg[src*="dark"]) {
+  border: 1px solid rgba(255,255,255,.22);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.12), 0 10px 28px rgba(0,0,0,.25);
+}
+
 .preview{
-  flex: 1 1 0;
+  flex: 5 1 0;
   display: grid;
   place-items: center;
   min-height: 0;
-  overflow: visible;
+  overflow: hidden;
   position: relative;
   z-index: 1;
 }
@@ -263,12 +274,12 @@ body{
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   backdrop-filter: blur(var(--blur));
-  padding: clamp(12px, 2vh, 16px) clamp(14px, 2vw, 18px);
+  padding: clamp(14px, 2.4vh, 22px) clamp(16px, 2.4vw, 24px);
   height: 100%;
   display: flex;
   flex-direction: column;
-  gap: clamp(12px, 1.8vh, 16px);
-  min-height: 0;
+  gap: clamp(12px, 1.6vh, 16px);
+  min-height: 60dvh;
 }
 .previewTop,
 .previewBottom{
@@ -276,12 +287,12 @@ body{
   min-height: 0;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto auto auto;
-  row-gap: 8px;
+  row-gap: 6px;
 }
 .previewMedia{
   width: 100%;
-  height: auto;
-  min-height: clamp(140px, 22vh, 260px);
+  height: 100%;
+  min-height: clamp(120px, 20vh, 240px);
   border-radius: 14px;
   overflow: hidden;
   background:
@@ -293,25 +304,53 @@ body{
   align-items: center;
   justify-content: center;
   padding: clamp(8px, 1.2vh, 12px);
+  position: relative;
 }
 .previewImg{
   max-width: 100%;
   max-height: 100%;
   width: auto;
   height: auto;
-  display: block;
   object-fit: contain;
   object-position: center;
   transform: scale(1);
   filter: saturate(1.06) contrast(1.05) brightness(1.03);
   transition: opacity 240ms var(--ease), transform 240ms var(--ease), filter 240ms var(--ease);
   pointer-events: none;
+  position: relative;
+  z-index: 2;
+}
+.previewImg[hidden]{
+  display: none !important;
 }
 .previewImg.isFading{
   opacity: 0;
   transform: scale(.985);
   filter: saturate(.98) contrast(.98);
 }
+
+/* Placeholder silhouette when no image loaded */
+.previewPlaceholder{
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  opacity: 0.45;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+.previewPlaceholder svg{
+  width: 40%;
+  height: 40%;
+  max-width: 160px;
+  max-height: 160px;
+}
+.previewMedia:has(.previewImg:not([hidden])) .previewPlaceholder{
+  opacity: 0;
+}
+
 .previewSub{
   font-size: 12px;
   color: var(--muted2);
@@ -345,8 +384,8 @@ body{
   font-size: 13px;
   color: rgba(0,198,255,.85);
   font-weight: 500;
-  margin-top: 20px;
-  padding-top: 12px;
+  margin-top: 12px;
+  padding-top: 10px;
   border-top: 1px solid rgba(255,255,255,.18);
 }
 .previewCard.dressed{
@@ -356,10 +395,11 @@ body{
 
 .controls{
   display: grid;
-  gap: clamp(8px, 1.3vh, 10px);
+  gap: clamp(6px, 1vh, 8px);
   min-height: 0;
   position: relative;
   z-index: 3;
+  flex: 0 0 auto;
 }
 .controlsInner{
   background: var(--panel);
@@ -367,7 +407,7 @@ body{
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   backdrop-filter: blur(var(--blur));
-  padding: clamp(10px, 1.6vh, 14px);
+  padding: clamp(8px, 1.2vh, 12px);
   display: grid;
   grid-template-columns: 1.3fr 1fr 1.1fr;
   gap: 12px;
@@ -445,7 +485,6 @@ body{
   text-align: center;
   font-size: 12px;
   color: var(--muted2);
-  /* Avoid hint line pushing the viewport on short heights */
   line-height: 1.35;
 }
 .kbd{
@@ -466,7 +505,6 @@ body{
   .btnGroup{ grid-template-columns: repeat(3, 1fr); }
 }
 
-/* Small-height devices: tighten vertically to guarantee no y-overflow */
 @media (max-height: 700px){
   :root{
     --cardH: clamp(78px, 11vh, 104px);
@@ -477,5 +515,8 @@ body{
   .kbdHint{ display: none; }
   .previewMedia{
     min-height: clamp(96px, 15vh, 150px);
+  }
+  .previewCard{
+    min-height: 40dvh;
   }
 }

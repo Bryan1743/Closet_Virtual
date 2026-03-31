@@ -1,92 +1,18 @@
-const tops = [
-  {
-    id: "top-tee-white",
-    name: "White Tee",
-    meta: "Cotton • everyday",
-    tag: "shirt",
-    img: "../assets/top/white_tee.webp",
-  },
-  {
-    id: "top-oxford-blue",
-    name: "Blue Oxford",
-    meta: "Crisp • smart casual",
-    tag: "shirt",
-    img: "../assets/top/blue_oxford.png",   
-  },
-  {
-    id: "top-knit-black",
-    name: "Black Knit",
-    meta: "Soft • layered",
-    tag: "sweater",
-    img: "../assets/top/black_knit.webp",
-  },
-  {
-    id: "top-bomber-olive",
-    name: "Olive Bomber",
-    meta: "Light • streetwear",
-    tag: "jacket",
-    img: "../assets/top/olive_bomber.png",
-  },
-  {
-    id: "top-denim-indigo",
-    name: "Indigo Denim",
-    meta: "Classic • durable",
-    tag: "jacket",
-    img: "../assets/top/indigo_denim.webp",
-  },
-  {
-    id: "top-blazer-charcoal",
-    name: "Charcoal Blazer",
-    meta: "Sharp • tailored",
-    tag: "jacket",
-    img: "../assets/top/charcoal_blazer.png",
-  },
-];
+let tops = [];
+let bottoms = [];
 
-const bottoms = [
-  {
-    id: "btm-jeans-straight",
-    name: "Straight Jeans",
-    meta: "Mid rise • blue",
-    tag: "pants",
-    img: "../assets/bottom/straight_jeans.png",
-  },
-  {
-    id: "btm-trouser-black",
-    name: "Black Trousers",
-    meta: "Clean • modern",
-    tag: "pants",
-    img: "../assets/bottom/black_trousers.png",
-  },
-  {
-    id: "btm-chino-sand",
-    name: "Sand Chinos",
-    meta: "Relaxed • warm tone",
-    tag: "pants",
-    img: "../assets/bottom/sand_chinos.png",
-  },
-  {
-    id: "btm-skirt-pleated",
-    name: "Pleated Skirt",
-    meta: "Light • flow",
-    tag: "skirt",
-    img: "../assets/bottom/pleated_skirt.png",
-  },
-  {
-    id: "btm-skirt-satin",
-    name: "Satin Midi",
-    meta: "Dressy • subtle sheen",
-    tag: "skirt",
-    img: "../assets/bottom/satin_midi.png",
-  },
-  {
-    id: "btm-cargo-gray",
-    name: "Gray Cargo",
-    meta: "Utility • pockets",
-    tag: "pants",
-    img: "../assets/bottom/gray_cargo.png",
-  },
-];
+async function loadWardrobe() {
+  try {
+    const res = await fetch("http://localhost:4000/api/wardrobe");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    tops = Array.isArray(data.tops) ? data.tops : [];
+    bottoms = Array.isArray(data.bottoms) ? data.bottoms : [];
+  } catch (err) {
+    console.error("Failed to load wardrobe data:", err);
+    setStatus("Could not connect to wardrobe server.");
+  }
+}
 
 const els = {
   topsCarousel: document.getElementById("topsCarousel"),
@@ -438,7 +364,15 @@ function hookControls() {
   });
 }
 
-renderRails();
-hookControls();
-setPlayPauseUI();
+(async function init() {
+  await loadWardrobe();
+  renderRails();
+  hookControls();
+  setPlayPauseUI();
+  window.dispatchEvent(new Event('resize'));
+  setTimeout(() => {
+    centerSelectedInView("tops");
+    centerSelectedInView("bottoms");
+  }, 100);
+})();
 
