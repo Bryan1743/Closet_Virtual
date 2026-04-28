@@ -15,8 +15,13 @@
             <div class="title">Virtual Closet</div>
             <div class="subtitle">Build outfits with a minimalist, smooth UI.</div>
           </div>
+          <span class="userChip" id="userChip"></span>
         </div>
         <div class="status" aria-live="polite" id="statusText">Ready.</div>
+          <button class="btn btnAnalyze" id="btnAnalyze" type="button">
+            <span class="btnTitle">Analyze Me</span>
+          </button>
+          <button class="btn btnChat" id="btnOpenChat" type="button">◆ StyleAI</button>
       </header>
 
       <main class="layout" aria-label="Closet layout">
@@ -104,6 +109,83 @@
       </main>
     </div>
 
+    <!-- Onboarding Overlay -->
+    <div class="onboarding" id="onboarding" aria-hidden="false">
+      <div class="onboardingCard">
+        <div class="onboardingLogo" aria-hidden="true"></div>
+        <h1 class="onboardingTitle">Virtual Closet</h1>
+        <p class="onboardingSubtitle">Your personal style journey starts here.</p>
+        
+        <div class="onboardingField">
+          <label class="onboardingLabel" for="onboardingName">What's your name?</label>
+          <input type="text" id="onboardingName" class="onboardingInput" placeholder="Your name..." maxlength="30" autocomplete="off" />
+          <span class="onboardingError" id="onboardingError"></span>
+        </div>
+        
+        <div class="onboardingField">
+          <label class="onboardingLabel">I identify as</label>
+          <div class="onboardingGender">
+            <button class="genderChip" data-gender="male" type="button">Hombre</button>
+            <button class="genderChip" data-gender="female" type="button">Mujer</button>
+          </div>
+        </div>
+        
+        <button class="btn btnAccent" id="onboardingConfirm" type="button" disabled>
+          <span class="btnTitle">Get Started</span>
+        </button>
+      </div>
+    </div>
+
     <script src="./app.js" defer></script>
+  
+    <div class="modal" id="analyzeModal" aria-hidden="true">
+      <div class="modalOverlay" id="analyzeModalOverlay"></div>
+      <div class="modalPanel" role="dialog" aria-label="Photo analysis">
+        <div class="modalHeader">
+          <h2 class="modalTitle">Style Analysis</h2>
+          <button class="modalClose" id="analyzeModalClose" type="button" aria-label="Close">✕</button>
+        </div>
+        <div class="modalBody" id="analyzeModalBody">
+          <div class="analyzeUpload" id="analyzeUpload">
+            <label class="analyzeDropzone" for="analyzeFileInput">
+              <input type="file" id="analyzeFileInput" accept="image/*" hidden />
+              <span class="analyzeUploadText">Click or drag a photo</span>
+            </label>
+            <div class="analyzePreview" id="analyzePreview" hidden>
+              <img id="analyzePreviewImg" alt="Selected photo" />
+            </div>
+          </div>
+          <div class="analyzeActions">
+            <button class="btn btnAccent" id="analyzeRunBtn" type="button" disabled><span class="btnTitle">Analyze</span></button>
+          </div>
+          <div class="analyzeLoading" id="analyzeLoading" hidden>
+            <div class="spinner"></div>
+            <span>Analyzing your photo...</span>
+          </div>
+          <div class="analyzeResults" id="analyzeResults" hidden></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chatOverlay" id="chatOverlay" hidden>
+      <div class="chatPanel">
+        <div class="chatHeader">
+          <div class="chatHeaderInfo">
+            <div class="chatAvatar">◆</div>
+            <div><div class="chatTitle">StyleAI</div><div class="chatStatus">Online</div></div>
+          </div>
+          <button class="chatClose" id="chatClose">✕</button>
+        </div>
+        <div class="chatMessages" id="chatMessages"></div>
+        <div class="chatSuggestions">
+          <button class="chatChip" data-msg="What colors work for me?">What colors work for me?</button>
+        </div>
+        <div class="chatInputArea">
+          <textarea id="chatInput" class="chatInput" placeholder="Ask StyleAI..." rows="1" maxlength="500"></textarea>
+          <button class="chatSendBtn" id="chatSend" disabled>▶</button>
+        </div>
+      </div>
+    </div>
+
   </body>
 </html>

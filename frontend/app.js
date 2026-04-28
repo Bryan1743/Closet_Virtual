@@ -1,5 +1,16 @@
 let tops = [];
 let bottoms = [];
+window._userProfile = null;
+
+// Load profile from sessionStorage and skip onboarding if exists
+(function loadStoredProfile() {
+  try {
+    const stored = sessionStorage.getItem('userProfile');
+    if (stored) {
+      window._userProfile = JSON.parse(stored);
+    }
+  } catch (e) {}
+})();
 
 async function loadWardrobe() {
   try {
@@ -374,5 +385,402 @@ function hookControls() {
     centerSelectedInView("tops");
     centerSelectedInView("bottoms");
   }, 100);
+})();
+
+// Analyze Modal
+let analyzeFile = null;
+let analyzeFileDataUrl = null;
+
+function openAnalyzeModal() {
+  const modal = document.getElementById("analyzeModal");
+  if (!modal) return;
+  modal.setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+}
+
+function closeAnalyzeModal() {
+  const modal = document.getElementById("analyzeModal");
+  if (!modal) return;
+  modal.setAttribute("aria-hidden", "true");
+  document.body.style.overflow = "";
+}
+
+function resetAnalyzeUI() {
+  const preview = document.getElementById("analyzePreview");
+  const previewImg = document.getElementById("analyzePreviewImg");
+  const fileInput = document.getElementById("analyzeFileInput");
+  const runBtn = document.getElementById("analyzeRunBtn");
+  const loading = document.getElementById("analyzeLoading");
+  const results = document.getElementById("analyzeResults");
+  analyzeFile = null;
+  analyzeFileDataUrl = null;
+  if (fileInput) fileInput.value = "";
+  if (preview) preview.hidden = true;
+  if (previewImg) previewImg.removeAttribute("src");
+  if (runBtn) runBtn.disabled = true;
+  if (loading) loading.hidden = true;
+  if (results) results.hidden = true;
+}
+
+function handleAnalyzeFileSelect(e) {
+  const file = e.target.files?.[0];
+  if (!file || !file.type.startsWith("image/")) return;
+  analyzeFile = file;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    analyzeFileDataUrl = ev.target.result;
+    const preview = document.getElementById("analyzePreview");
+    const previewImg = document.getElementById("analyzePreviewImg");
+    const runBtn = document.getElementById("analyzeRunBtn");
+    if (previewImg) previewImg.src = analyzeFileDataUrl;
+    if (preview) preview.hidden = false;
+    if (runBtn) runBtn.disabled = false;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function runAnalyze() {
+  if (!analyzeFileDataUrl) return;
+  const loading = document.getElementById("analyzeLoading");
+  const results = document.getElementById("analyzeResults");
+  const runBtn = document.getElementById("analyzeRunBtn");
+  const upload = document.getElementById("analyzeUpload");
+  const preview = document.getElementById("analyzePreview");
+
+  if (loading) loading.hidden = false;
+  if (results) results.hidden = true;
+  if (runBtn) runBtn.disabled = true;
+  if (upload) upload.hidden = true;
+  if (preview) preview.hidden = true;
+
+  try {
+    const res = await fetch("http://localhost:4000/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: analyzeFileDataUrl }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    renderAnalyzeResults(data.profile);
+    window._styleAnalysis = data.profile;
+  } catch (err) {
+    console.error("Analysis failed:", err);
+    setStatus("Analysis failed: " + err.message);
+    if (loading) loading.hidden = true;
+    if (upload) upload.hidden = false;
+    if (preview) preview.hidden = false;
+    if (runBtn) runBtn.disabled = false;
+  }
+}
+
+function renderAnalyzeResults(profile) {
+  const loading = document.getElementById("analyzeLoading");
+  const results = document.getElementById("analyzeResults");
+  if (loading) loading.hidden = true;
+  if (!results) return;
+  const colors = (profile.recommendedColors || []).map((hex, i) => {
+    const name = (profile.colorsDescription || [])[i] || hex;
+    return `<div class="resultColorItem"><div class="resultColorSwatch" style="background:${hex}"></div><span class="resultColorName">${name}</span></div>`;
+  }).join("");
+  results.innerHTML = `
+    <div class="resultSection">
+      <h3 class="resultSectionTitle">Your Profile</h3>
+      <div class="resultProfile">
+        <div class="resultProfileItem"><span class="resultProfileLabel">Skin Tone</span><span class="resultProfileValue">${profile.skinTone || "—"}</span></div>
+        <div class="resultProfileItem"><span class="resultProfileLabel">Body Type</span><span class="resultProfileValue">${profile.bodyType || "—"}</span></div>
+      </div>
+    </div>
+    <div class="resultSection"><h3 class="resultSectionTitle">Recommended Colors</h3><div class="resultColors">${colors}</div></div>
+    <div class="resultSection"><h3 class="resultSectionTitle">Style Advice</h3><p class="resultAdvice">${profile.styleAdvice || "No advice."}</p></div>
+  `;
+  results.hidden = false;
+}
+
+function hookAnalyzeModal() {
+  const btn = document.getElementById("btnAnalyze");
+  const closeBtn = document.getElementById("analyzeModalClose");
+  const overlay = document.getElementById("analyzeModalOverlay");
+  const fileInput = document.getElementById("analyzeFileInput");
+  const runBtn = document.getElementById("analyzeRunBtn");
+  if (btn) btn.addEventListener("click", openAnalyzeModal);
+  if (closeBtn) closeBtn.addEventListener("click", closeAnalyzeModal);
+  if (overlay) overlay.addEventListener("click", closeAnalyzeModal);
+  if (fileInput) fileInput.addEventListener("change", handleAnalyzeFileSelect);
+  if (runBtn) runBtn.addEventListener("click", runAnalyze);
+}
+
+// StyleAI Chat
+const chatState = { history: [], isTyping: false };
+let savedChatHTML = null;
+let chatOpenedFirstTime = false;
+
+function showTypingIndicator() {
+  const messages = document.getElementById("chatMessages");
+  if (!messages) return;
+  const existing = document.getElementById("typingIndicator");
+  if (existing) return;
+  const msg = document.createElement("div");
+  msg.className = "chatMsg chatMsgAI chatTyping";
+  msg.id = "typingIndicator";
+  msg.innerHTML = '<div class="chatBubble"><div class="typingDot"></div><div class="typingDot"></div><div class="typingDot"></div></div>';
+  messages.appendChild(msg);
+messages.scrollTop = messages.scrollHeight;
+}
+
+function closeChat() {
+  document.getElementById("chatOverlay")?.setAttribute("hidden", "");
+}
+
+function openChat() {
+  document.getElementById("chatOverlay")?.removeAttribute("hidden");
+  document.getElementById("chatInput")?.focus();
+  
+  if (window._userProfile) {
+    const messages = document.getElementById("chatMessages");
+    if (messages) {
+      messages.hidden = false;
+      if (savedChatHTML !== null) {
+        messages.innerHTML = savedChatHTML;
+        savedChatHTML = null;
+      } else if (!chatOpenedFirstTime) {
+        chatOpenedFirstTime = true;
+        messages.innerHTML = '';
+        messages.hidden = false;
+        const suggestions = document.getElementById("chatSuggestions");
+        if (suggestions) suggestions.style.display = "flex";
+        
+        showTypingIndicator();
+        setTimeout(() => {
+          try {
+            const typingEl = document.getElementById("typingIndicator");
+            if (typingEl) typingEl.remove();
+            
+            const greeting = buildChatGreeting();
+            console.log('[Chat Greeting]:', greeting);
+            
+            const msgDiv = document.createElement("div");
+            msgDiv.className = "chatMsg chatMsgAI";
+            msgDiv.innerHTML = '<div class="chatBubble">' + greeting + '</div>';
+            messages.appendChild(msgDiv);
+            messages.scrollTop = messages.scrollHeight;
+          } catch (err) {
+            console.error('[Chat Greeting Error]:', err);
+            const msgDiv = document.createElement("div");
+            msgDiv.className = "chatMsg chatMsgAI";
+            msgDiv.innerHTML = '<div class="chatBubble">¡Hola! Soy StyleAI. ¿En qué puedo ayudarte hoy?</div>';
+            messages.appendChild(msgDiv);
+          }
+        }, 800);
+      }
+    }
+  }
+}
+
+function sanitizeMarkdown(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/(?<!\*)\*(?!\*)/g, '')
+    .replace(/^#+\s*/gm, '')
+    .replace(/`[^`]+`/g, (m) => m.replace(/[`*]/g, ''));
+}
+
+function addChatMessage(role, text) {
+  const messages = document.getElementById("chatMessages");
+  const msg = document.createElement("div");
+  msg.className = "chatMsg " + (role === "user" ? "chatMsgUser" : "chatMsgAI");
+  const cleanText = role === "ai" ? sanitizeMarkdown(text) : text;
+  msg.innerHTML = '<div class="chatBubble">' + cleanText + '</div>';
+  messages.appendChild(msg);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+async function sendChatMessage(text) {
+  if (!text.trim() || chatState.isTyping) return;
+  const input = document.getElementById("chatInput");
+  const sendBtn = document.getElementById("chatSend");
+  input.value = "";
+  input.style.height = "auto";
+  input.style.height = Math.min(input.scrollHeight, 120) + "px";
+  sendBtn.disabled = true;
+  chatState.isTyping = true;
+  addChatMessage("user", text);
+  chatState.history.push({ role: "user", parts: text });
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        message: text, 
+        history: chatState.history.slice(0, -1), 
+        analysis: window._styleAnalysis || null,
+        wardrobe: { tops: tops, bottoms: bottoms },
+        userName: window._userProfile?.name || null,
+        userGender: window._userProfile?.gender || null
+      }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      addChatMessage("ai", data.reply);
+      chatState.history.push({ role: "model", parts: data.reply });
+    } else {
+      addChatMessage("ai", "Sorry, I had trouble responding.");
+    }
+  } catch (err) {
+    addChatMessage("ai", "Connection error.");
+  }
+  chatState.isTyping = false;
+  sendBtn.disabled = input.value.trim() === "";
+}
+
+document.getElementById("btnAnalyze")?.addEventListener("click", openAnalyzeModal);
+document.getElementById("btnOpenChat")?.addEventListener("click", openChat);
+document.getElementById("chatClose")?.addEventListener("click", closeChat);
+document.getElementById("chatOverlay")?.addEventListener("click", (e) => { if (e.target === e.currentTarget) closeChat(); });
+document.getElementById("chatInput")?.addEventListener("input", function() {
+  this.style.height = "auto";
+  this.style.height = Math.min(this.scrollHeight, 120) + "px";
+  document.getElementById("chatSend").disabled = this.value.trim() === "";
+});
+document.getElementById("chatInput")?.addEventListener("keydown", (e) => { 
+  e.stopPropagation();
+  if (e.key === "Enter" && !e.shiftKey) { 
+    e.preventDefault(); 
+    const input = document.getElementById("chatInput");
+    const text = input?.value?.trim();
+    if (text) {
+      sendChatMessage(text);
+    }
+  } 
+});
+document.getElementById("chatSend")?.addEventListener("click", () => sendChatMessage(document.getElementById("chatInput").value.trim()));
+document.querySelectorAll(".chatChip").forEach(chip => chip.addEventListener("click", () => sendChatMessage(chip.dataset.msg)));
+
+// Onboarding logic
+function showOnboarding() {
+  const el = document.getElementById("onboarding");
+  if (el) el.setAttribute("aria-hidden", "false");
+}
+
+function hideOnboarding() {
+  const el = document.getElementById("onboarding");
+  if (el) el.setAttribute("aria-hidden", "true");
+  setTimeout(() => { if (el) el.hidden = true; }, 500);
+}
+
+function updateOnboardingButton() {
+  const name = document.getElementById("onboardingName")?.value.trim() || "";
+  const genderSelected = document.querySelector(".genderChip.selected");
+  const btn = document.getElementById("onboardingConfirm");
+  if (btn) btn.disabled = !(name.length >= 2 && genderSelected);
+}
+
+function completeOnboarding(name, gender) {
+  window._userProfile = { name, gender };
+  sessionStorage.setItem('userProfile', JSON.stringify(window._userProfile));
+  
+  // Show user chip in header
+  const chip = document.getElementById("userChip");
+  if (chip) {
+    chip.textContent = name;
+    chip.style.display = "inline";
+  }
+  
+  hideOnboarding();
+}
+
+function buildChatGreeting() {
+  try {
+    const hour = new Date().getHours();
+    let timeSalutation;
+    if (hour >= 5 && hour <= 11) timeSalutation = "Buenos días";
+    else if (hour >= 12 && hour <= 17) timeSalutation = "Buenas tardes";
+    else if (hour >= 18 && hour <= 20) timeSalutation = "Buenas tardes";
+    else timeSalutation = "Buenas noches";
+
+    const isFemale = window._userProfile?.gender === "female";
+    const adjBien = isFemale ? "bienvenida" : "bienvenido";
+    const adjPreparado = isFemale ? "preparada" : "preparado";
+    const adjListo = isFemale ? "lista" : "listo";
+    const name = window._userProfile?.name || "amigo";
+
+    const greetings = [
+      `${timeSalutation}, ${name}! ${adjBien} de nuevo. Tengo outfits increíbles para ti. ¿Qué te gustaría probar hoy?`,
+      `¡${name}! Qué gusto volver a verte. Tu closet está esperando. ¿Empezamos con algo fresco?`,
+      `${timeSalutation}, ${name}. Estoy ${adjPreparado} para ayudarte. Dime, ¿qué outfit buscas hoy?`,
+      `Hey ${name}! ${timeSalutation} para descubrir algo increíble. ¿Por dónde empezamos?`,
+      `${name}, ${timeSalutation}! Tu Virtual Closet tiene looks esperándote. ¿Lista para explorar?`.replace("¿Lista", isFemale ? "¿Lista" : "¿Listo"),
+      `¡${timeSalutation}, ${name}! Aquí estamos de nuevo. Tengo combos perfectos para ti. ¿Qué estilo te llama hoy?`,
+      `Bienvenido de nuevo, ${name}. Estoy listo con outfits increíbles. ¿Te animas a probar algo nuevo?`,
+      `${timeSalutation === "Buenos días" ? "Día nuevo" : "Qué alegría"} verte, ${name}! Tu guardarropa está ${adjListo}. ¿Qué look vamos a crear?`
+    ];
+
+    let idx;
+    do {
+      idx = Math.floor(Math.random() * greetings.length);
+    } while (idx === lastGreetingIndex && greetings.length > 1);
+    lastGreetingIndex = idx;
+    return greetings[idx];
+  } catch (err) {
+    console.error('[buildChatGreeting Error]:', err);
+    return "¡Hola! Soy StyleAI. ¿En qué puedo ayudarte hoy?";
+  }
+}
+
+// Onboarding event listeners
+document.addEventListener("DOMContentLoaded", () => {
+  if (window._userProfile) {
+    const chip = document.getElementById("userChip");
+    if (chip) { chip.textContent = window._userProfile.name; chip.style.display = "inline"; }
+    const ob = document.getElementById("onboarding");
+    if (ob) { ob.hidden = true; }
+  } else {
+    showOnboarding();
+  }
+  
+  const nameInput = document.getElementById("onboardingName");
+  const confirmBtn = document.getElementById("onboardingConfirm");
+  const genderChips = document.querySelectorAll(".genderChip");
+  const errorSpan = document.getElementById("onboardingError");
+  let selectedGender = null;
+  
+  nameInput?.addEventListener("input", () => {
+    const val = nameInput.value.trim();
+    if (val && val.length < 2) {
+      errorSpan.textContent = "Name must be at least 2 characters";
+    } else {
+      errorSpan.textContent = "";
+    }
+    updateOnboardingButton();
+  });
+  
+  genderChips.forEach(chip => {
+    chip.addEventListener("click", () => {
+      genderChips.forEach(c => c.classList.remove("selected"));
+      chip.classList.add("selected");
+      selectedGender = chip.dataset.gender;
+      updateOnboardingButton();
+    });
+  });
+  
+  confirmBtn?.addEventListener("click", () => {
+    const name = nameInput?.value.trim();
+    if (name && name.length >= 2 && selectedGender) {
+      completeOnboarding(name, selectedGender);
+    }
+  });
+});
+
+let lastGreetingIndex = -1;
+
+// Add hookAnalyzeModal to init
+(async function init() {
+  await loadWardrobe();
+  renderRails();
+  hookControls();
+  hookAnalyzeModal();
+  setPlayPauseUI();
+  window.dispatchEvent(new Event("resize"));
+  setTimeout(() => { centerSelectedInView("tops"); centerSelectedInView("bottoms"); }, 100);
 })();
 
